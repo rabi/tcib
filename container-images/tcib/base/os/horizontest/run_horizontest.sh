@@ -39,8 +39,12 @@ SERVICES_REGION_BTN_TEXT_PATTERN="Managing Region {region}"
 SERVICES_REGION_DROPDOWN_XPATH=".//li[@id='services_region_switcher']"
 
 # assert mandatory variables have been set
-[[ -z ${ADMIN_USERNAME} ]] && echo "ADMIN_USERNAME not set" && exit 1
-[[ -z ${ADMIN_PASSWORD} ]] && echo "ADMIN_PASSWORD not set" && exit 1
+if [[ -z "${ADMIN_USERNAME}" ]]; then
+    ADMIN_USERNAME=$(python3 -c "from openstack.config import OpenStackConfig; print(OpenStackConfig().get_one(cloud='default').auth['username'])")
+fi
+if [[ -z "${ADMIN_PASSWORD}" ]]; then
+    ADMIN_PASSWORD=$(python3 -c "from openstack.config import OpenStackConfig; print(OpenStackConfig().get_one(cloud='default').auth['password'])")
+fi
 [[ -z ${DASHBOARD_URL} ]] && echo "DASHBOARD_URL not set" && exit 1
 [[ -z ${AUTH_URL} ]] && echo "AUTH_URL not set" && exit 1
 [[ -z ${REPO_URL} ]] && REPO_URL="https://review.opendev.org/openstack/horizon"
