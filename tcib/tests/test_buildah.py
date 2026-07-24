@@ -113,11 +113,33 @@ class TestBuildahBuilder(base.TestCase):
         buildah_cmd_build = ['--log-level=debug', 'bud', '--net=host',
                              '--loglevel=3', '--label',
                              'tcib_build_tag=latest', '--format', 'docker',
-                             '--tls-verify=False', '--logfile',
+                             '--logfile',
                              logfile, '-t', dest, container_build_path]
         args.extend(buildah_cmd_build)
         bb(WORK_DIR, DEPS, debug=True).build('fedora-base',
                                              container_build_path)
+        mock_process.assert_called_once_with(
+            *args,
+            check_exit_code=True,
+            run_as_root=False,
+            use_standard_locale=True
+        )
+
+    @mock.patch.object(process, 'execute', autospec=True)
+    @mock.patch.object(pathlib.Path, 'touch', autospec=True)
+    def test_build_tls_verify_disabled(self, mock_touch, mock_process):
+        args = copy.copy(BUILDAH_CMD_BASE)
+        dest = '127.0.0.1:8787/master/fedora-binary-fedora-base:latest'
+        container_build_path = WORK_DIR + '/' + 'fedora-base'
+        logfile = '/tmp/kolla/fedora-base/fedora-base-build.log'
+        buildah_cmd_build = ['--log-level=debug', 'bud', '--net=host',
+                             '--loglevel=3', '--label',
+                             'tcib_build_tag=latest', '--format', 'docker',
+                             '--tls-verify=false', '--logfile',
+                             logfile, '-t', dest, container_build_path]
+        args.extend(buildah_cmd_build)
+        bb(WORK_DIR, DEPS, debug=True, tls_verify=False).build(
+            'fedora-base', container_build_path)
         mock_process.assert_called_once_with(
             *args,
             check_exit_code=True,
@@ -134,7 +156,7 @@ class TestBuildahBuilder(base.TestCase):
         logfile = '/tmp/kolla/fedora-base/fedora-base-build.log'
         buildah_cmd_build = ['bud', '--net=host', '--label',
                              'tcib_build_tag=latest', '--format',
-                             'docker', '--tls-verify=False',
+                             'docker',
                              '--logfile', logfile, '-t', dest,
                              container_build_path]
         args.extend(buildah_cmd_build)
@@ -159,7 +181,6 @@ class TestBuildahBuilder(base.TestCase):
                              '--volume', '/etc/dir2:/dir2',
                              '--label', 'tcib_build_tag=latest',
                              '--format', 'docker',
-                             '--tls-verify=False',
                              '--logfile', logfile, '-t', dest,
                              container_build_path]
         args.extend(buildah_cmd_build)
@@ -182,10 +203,21 @@ class TestBuildahBuilder(base.TestCase):
     def test_push(self, mock_process):
         args = copy.copy(BUILDAH_CMD_BASE)
         dest = '127.0.0.1:8787/master/fedora-binary-fedora-base:latest'
-        buildah_cmd_push = ['push', '--tls-verify=False', dest,
-                            'docker://' + dest]
+        buildah_cmd_push = ['push', dest, 'docker://' + dest]
         args.extend(buildah_cmd_push)
         bb(WORK_DIR, DEPS).push(dest)
+        mock_process.assert_called_once_with(
+            *args, run_as_root=False, use_standard_locale=True
+        )
+
+    @mock.patch.object(process, 'execute', autospec=True)
+    def test_push_tls_verify_disabled(self, mock_process):
+        args = copy.copy(BUILDAH_CMD_BASE)
+        dest = '127.0.0.1:8787/master/fedora-binary-fedora-base:latest'
+        buildah_cmd_push = ['push', '--tls-verify=false', dest,
+                            'docker://' + dest]
+        args.extend(buildah_cmd_push)
+        bb(WORK_DIR, DEPS, tls_verify=False).push(dest)
         mock_process.assert_called_once_with(
             *args, run_as_root=False, use_standard_locale=True
         )

@@ -39,7 +39,8 @@ class BuildahBuilder(base.BaseBuilder):
     def __init__(self, work_dir, deps, base='fedora', img_type='binary',
                  tag='latest', namespace='master',
                  registry_address='127.0.0.1:8787', push_containers=True,
-                 volumes=[], excludes=[], build_timeout=None, debug=False):
+                 volumes=[], excludes=[], build_timeout=None, debug=False,
+                 tls_verify=True):
         """Setup the parameters to build with Buildah.
 
         :params work_dir: Directory where the Dockerfiles or Containerfiles
@@ -63,6 +64,8 @@ class BuildahBuilder(base.BaseBuilder):
         :params excludes: List of images to skip. Default to [].
         :params build_timeout: Timeout. Default to BUILD_TIMEOUT
         :params debug: Enable debug flag. Default to False.
+        :params tls_verify: Enable TLS verification for registry
+            communication. Default to True.
         """
 
         logging.register_options(CONF)
@@ -86,6 +89,7 @@ class BuildahBuilder(base.BaseBuilder):
         self.volumes = volumes
         self.excludes = excludes
         self.debug = debug
+        self.tls_verify = tls_verify
         # Each container image has a Dockerfile or a Containerfile.
         # Buildah needs to know the base directory later.
         self.cont_map = {os.path.basename(root): root for root, dirs,
@@ -162,10 +166,6 @@ class BuildahBuilder(base.BaseBuilder):
             Containerfile and other files are located to build the image.
         """
 
-        # 'buildah bud' is the command we want because Kolla uses Dockefile to
-        # build images.
-        # TODO(emilien): Stop ignoring TLS. The deployer should either secure
-        # the registry or add it to insecure_registries.
         logfile = container_build_path + '/' + container_name + '-build.log'
 
         # TODO(ramishra) Hack to make the logfile readable by current user,
@@ -182,8 +182,10 @@ class BuildahBuilder(base.BaseBuilder):
         bud_args.extend(['--label', 'tcib_build_tag=%s' % self.tag])
         # TODO(aschultz): drop --format docker when oci format is properly
         # supported by the undercloud registry
-        bud_args.extend(['--format', 'docker', '--tls-verify=False',
-                         '--logfile', logfile, '-t',
+        bud_args.extend(['--format', 'docker'])
+        if not self.tls_verify:
+            bud_args.append('--tls-verify=false')
+        bud_args.extend(['--logfile', logfile, '-t',
                          self._get_destination(container_name),
                          container_build_path])
         args = self.buildah_cmd + bud_args
@@ -209,12 +211,13 @@ class BuildahBuilder(base.BaseBuilder):
             the registry address, namespace, base, img_type (optional),
             container name and tag.
         """
-        # TODO(emilien): Stop ignoring TLS. The deployer should either secure
-        # the registry or add it to insecure_registries.
         # TODO(emilien) We need to figure out how we can push to something
         # else than a Docker registry.
-        args = self.buildah_cmd + ['push', '--tls-verify=False', destination,
-                                   'docker://' + destination]
+        push_args = ['push']
+        if not self.tls_verify:
+            push_args.append('--tls-verify=false')
+        push_args.extend([destination, 'docker://' + destination])
+        args = self.buildah_cmd + push_args
         self.log.info("Pushing %s image with: %s" %
                       (destination, ' '.join(args)))
         if self.debug:
