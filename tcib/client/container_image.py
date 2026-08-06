@@ -275,6 +275,17 @@ class Build(command.Command):
             type=int,
             help=_("Build timeout in seconds.")
         )
+        parser.add_argument(
+            "--no-tls-verify",
+            dest="tls_verify",
+            default=True,
+            action="store_false",
+            help=_(
+                "Disable TLS verification when pulling/pushing images. "
+                "WARNING: This makes registry communication vulnerable to "
+                "MITM attacks. Only use for local/development registries."
+            ),
+        )
         return parser
 
     def imagename_to_regex(self, imagename):
@@ -754,7 +765,8 @@ class Build(command.Command):
                 volumes=volumes,
                 excludes=list(set(excludes)),
                 build_timeout=parsed_args.build_timeout,
-                debug=self.app.options.debug
+                debug=self.app.options.debug,
+                tls_verify=parsed_args.tls_verify
             )
             try:
                 bb.build_all()
