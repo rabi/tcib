@@ -3,17 +3,18 @@
 # kolla_set_configs via sudo as the root user which is necessary to protect
 # the immutability of the container
 
-# anyone in the kolla group may sudo -E (set the environment)
-Defaults: %kolla setenv
+# Avoid `setenv` so untrusted environment variables cannot reach root helpers.
+# Keep the required Kolla variables for both root and `%kolla` callers.
 Defaults secure_path="/var/lib/kolla/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Defaults:root env_keep += "KOLLA_CONFIG_STRATEGY KOLLA_CONFIG_FILES HOME LANG"
+Defaults:%kolla env_keep += "KOLLA_CONFIG_STRATEGY KOLLA_CONFIG_FILES HOME LANG DB_ROOT_PASSWORD DB_MAX_TIMEOUT"
 
-# root may run any commands via sudo as the network seervice user.  This is
-# neededfor database migrations of existing services which have not been
-# converted to run as a non-root user, but instead do that via sudo -E glance
+# root may run commands as a service user for database migrations etc.
 root ALL=(ALL) ALL
 
-# anyone in the kolla group may run /usr/local/bin/kolla_set_configs as the
-# root user via sudo without password confirmation
-%kolla ALL=(root) NOPASSWD: /usr/local/bin/kolla*
+# Explicit helper paths avoid wildcard-based sudo escalation.
+%kolla ALL=(root) NOPASSWD: /usr/local/bin/kolla_set_configs
+%kolla ALL=(root) NOPASSWD: /usr/local/bin/kolla_copy_cacerts
+%kolla ALL=(root) NOPASSWD: /usr/local/bin/kolla_security_reset
 
 #includedir /etc/sudoers.d

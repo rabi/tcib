@@ -1,1 +1,3 @@
-tobiko        ALL=(ALL)       NOPASSWD: ALL
+# Tobiko sanity checks need limited host network inspection.
+tobiko ALL=(root) NOPASSWD: /bin/sh -c /sbin/ip\ --brief\ address\ list
+tobiko ALL=(root) NOPASSWD: /bin/sh -c /sbin/ip\ -o\ netns\ list

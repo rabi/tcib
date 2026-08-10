@@ -2,10 +2,9 @@
 set -o errexit
 set -o xtrace
 
-# Processing /var/lib/kolla/config_files/config.json as root.  This is necessary
-# to permit certain files to be controlled by the root user which should
-# not be writable by the dropped-privileged user, especially /run_command
-sudo -E kolla_set_configs
+# Process config as root because `/run_command` must stay root-controlled.
+# Use sudoers `env_keep` instead of `sudo -E`.
+sudo kolla_set_configs
 CMD=$(cat /run_command)
 ARGS=""
 

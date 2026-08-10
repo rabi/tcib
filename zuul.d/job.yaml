@@ -9,6 +9,9 @@
       cifmw_set_openstack_containers_namespace: podified-master-centos9
       cifmw_update_containers_org: "podified-master-centos9"
       cifmw_build_containers_registry_namespace: podified-master-centos9
+      cifmw_build_containers_install_from_source: true
+      cifmw_build_containers_tcib_src: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/tcib"
+      cifmw_build_containers_config_path: "{{ ansible_user_dir }}/src/github.com/openstack-k8s-operators/tcib/container-images"
       cifmw_install_yamls_vars_patch_registry_url:
         DATAPLANE_REGISTRY_URL: quay.io/podified-master-centos9
 
